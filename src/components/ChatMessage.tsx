@@ -22,44 +22,45 @@ export function ChatMessage({
   }
 
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex items-start gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
       <div
-        className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+        className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${
           isUser
-            ? 'bg-blue-600 text-white'
-            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100'
+            ? 'bg-zinc-800 text-white dark:bg-zinc-200 dark:text-zinc-800'
+            : 'bg-emerald-600 text-white'
         }`}
       >
-        {isUser ? (
-          <p className="whitespace-pre-wrap">{message.content}</p>
-        ) : (
-          <div className="prose dark:prose-invert prose-zinc max-w-none prose-sm">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {message.content}
-            </ReactMarkdown>
-          </div>
-        )}
+        {isUser ? 'U' : 'AI'}
+      </div>
+
+      <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-[75%]`}>
+        <div
+          className={`rounded-2xl px-4 py-2.5 ${
+            isUser
+              ? 'bg-zinc-800 text-white dark:bg-zinc-200 dark:text-zinc-800'
+              : 'bg-zinc-100 dark:bg-zinc-800/50 text-zinc-900 dark:text-zinc-100'
+          }`}
+        >
+          {isUser ? (
+            <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
+          ) : (
+            <div className="prose dark:prose-invert prose-zinc max-w-none prose-sm leading-relaxed">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {isStreaming ? message.content || '' : message.content}
+              </ReactMarkdown>
+            </div>
+          )}
+        </div>
 
         {!isUser && !isStreaming && message.content && (
           <button
             onClick={copyToClipboard}
-            className="mt-2 text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors flex items-center gap-1"
+            className="mt-1.5 text-[11px] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors flex items-center gap-1 px-1"
           >
-            {copied ? (
-              <>
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Copied
-              </>
-            ) : (
-              <>
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-                Copy
-              </>
-            )}
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            {copied ? 'Copied' : 'Copy'}
           </button>
         )}
       </div>

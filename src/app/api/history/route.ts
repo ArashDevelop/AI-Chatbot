@@ -44,3 +44,23 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: message }, { status: 500 })
   }
 }
+
+export async function PUT(req: NextRequest) {
+  try {
+    const { id, title, messages } = await req.json()
+
+    if (!id || !messages) {
+      return Response.json({ error: 'id and messages required' }, { status: 400 })
+    }
+
+    const conversation = await prisma.conversation.update({
+      where: { id },
+      data: { title: title || undefined, messages },
+    })
+
+    return Response.json(conversation)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Internal server error'
+    return Response.json({ error: message }, { status: 500 })
+  }
+}

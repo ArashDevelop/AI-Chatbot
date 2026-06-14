@@ -104,7 +104,7 @@ export default function Home() {
       const finalMessages = [...messages, userMessage, { role: 'assistant' as const, content: fullContent }]
       setMessages(finalMessages)
       setStreamingContent('')
-      if (!currentConvId) saveConversation(finalMessages)
+      saveConversation(finalMessages)
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {
         setMessages((prev) => [...prev, { role: 'assistant', content: streamingContent }])
@@ -121,23 +121,35 @@ export default function Home() {
   const saveConversation = useCallback(async (msgs: ChatMessageType[]) => {
     try {
       const title = msgs.find((m) => m.role === 'user')?.content.slice(0, 60) || 'New Chat'
-      const res = await fetch('/api/history', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, messages: msgs }),
-      })
-      if (res.ok) {
-        const saved = await res.json()
-        setCurrentConvId(saved.id)
-        setConversations((prev) => [
-          { id: saved.id, title: saved.title, createdAt: saved.createdAt },
-          ...prev,
-        ])
+
+      if (currentConvId) {
+        await fetch('/api/history', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: currentConvId, title, messages: msgs }),
+        })
+        setConversations((prev) =>
+          prev.map((c) => (c.id === currentConvId ? { ...c, title } : c))
+        )
+      } else {
+        const res = await fetch('/api/history', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, messages: msgs }),
+        })
+        if (res.ok) {
+          const saved = await res.json()
+          setCurrentConvId(saved.id)
+          setConversations((prev) => [
+            { id: saved.id, title: saved.title, createdAt: saved.createdAt },
+            ...prev,
+          ])
+        }
       }
     } catch {
       // silently fail — history is not critical
     }
-  }, [])
+  }, [currentConvId])
 
   const stopGeneration = () => {
     abortRef.current?.abort()
@@ -173,7 +185,7 @@ export default function Home() {
   }, [])
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen bg-white dark:bg-zinc-900">
       <Sidebar
         open={sidebarOpen}
         conversations={conversations}
@@ -183,47 +195,51 @@ export default function Home() {
       />
 
       <div className="flex flex-1 flex-col min-w-0">
-        <header className="flex items-center gap-3 border-b px-4 py-3 shrink-0">
+        <header className="flex items-center gap-3 px-4 h-14 border-b border-zinc-100 dark:border-zinc-800 shrink-0">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+            className="p-1.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
             aria-label="Open sidebar"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <h1 className="font-semibold text-lg">AI Chatbot</h1>
-          <div className="ml-auto">
-            <ModelSelector selected={model} onSelect={setModel} models={models} />
-          </div>
+          <ModelSelector selected={model} onSelect={setModel} models={models} />
         </header>
 
-        <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
-          {messages.length === 0 && !isLoading && (
-            <div className="flex items-center justify-center h-full text-zinc-400">
-              <p className="text-lg">Send a message to start chatting</p>
-            </div>
-          )}
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+            {messages.length === 0 && !isLoading && (
+              <div className="flex flex-col items-center justify-center h-full min-h-[60vh] text-center">
+                <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-4">
+                  <svg className="w-6 h-6 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                </div>
+                <p className="text-sm text-zinc-400">Send a message to start chatting</p>
+              </div>
+            )}
 
-          {messages.map((msg, i) => (
-            <ChatMessage key={i} message={msg} />
-          ))}
+            {messages.map((msg, i) => (
+              <ChatMessage key={i} message={msg} />
+            ))}
 
-          {(streamingContent || isLoading) && (
-            <ChatMessage
-              message={{ role: 'assistant', content: streamingContent || '...' }}
-              isStreaming
-            />
-          )}
+            {(streamingContent || isLoading) && (
+              <ChatMessage
+                message={{ role: 'assistant', content: streamingContent || '' }}
+                isStreaming
+              />
+            )}
 
-          {error && (
-            <div className="rounded-lg bg-red-50 dark:bg-red-900/20 p-4 text-red-600 dark:text-red-400 text-sm">
-              {error}
-            </div>
-          )}
+            {error && (
+              <div className="rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 px-4 py-3 text-sm text-red-600 dark:text-red-400">
+                {error}
+              </div>
+            )}
 
-          <div ref={messagesEndRef} />
+            <div ref={messagesEndRef} />
+          </div>
         </div>
 
         <ChatInput

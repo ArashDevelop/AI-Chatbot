@@ -37,7 +37,7 @@ export function ChatInput({
     const el = textareaRef.current
     if (!el) return
     el.style.height = 'auto'
-    el.style.height = `${Math.min(el.scrollHeight, 200)}px`
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`
   }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,8 +67,8 @@ export function ChatInput({
   }
 
   return (
-    <div className="border-t px-4 py-4 shrink-0">
-      <div className="flex items-end gap-2 max-w-4xl mx-auto">
+    <div className="border-t border-zinc-200 dark:border-zinc-800 px-4 py-3 shrink-0">
+      <div className="flex items-end gap-2 max-w-3xl mx-auto">
         <input
           ref={fileRef}
           type="file"
@@ -77,49 +77,54 @@ export function ChatInput({
           className="hidden"
         />
 
-        <button
-          type="button"
-          onClick={() => fileRef.current?.click()}
-          disabled={isLoading || uploading}
-          className="shrink-0 rounded-xl border border-zinc-300 dark:border-zinc-700 p-3 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-40 transition-colors"
-          title="Upload file"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-          </svg>
-        </button>
-
-        <textarea
-          ref={textareaRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onInput={handleInput}
-          placeholder="Type a message..."
-          rows={1}
-          className="flex-1 resize-none rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-        />
-
-        {isLoading ? (
+        <div className="flex-1 flex items-end gap-2 bg-zinc-100 dark:bg-zinc-800/50 rounded-2xl px-4 py-2 focus-within:bg-zinc-50 dark:focus-within:bg-zinc-800 transition-colors">
           <button
-            onClick={onStop}
-            className="shrink-0 rounded-xl bg-red-600 px-4 py-3 text-white text-sm font-medium hover:bg-red-700 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-              <rect x="6" y="6" width="12" height="12" rx="1" />
-            </svg>
-          </button>
-        ) : (
-          <button
-            onClick={handleSubmit}
-            disabled={!input.trim()}
-            className="shrink-0 rounded-xl bg-blue-600 px-4 py-3 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={isLoading || uploading}
+            className="shrink-0 p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 disabled:opacity-40 transition-colors"
+            title="Upload file"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M12 5l7 7-7 7" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
             </svg>
           </button>
-        )}
+
+          <textarea
+            ref={textareaRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onInput={handleInput}
+            placeholder="Type a message..."
+            rows={1}
+            className="flex-1 resize-none bg-transparent py-1.5 text-sm outline-none placeholder:text-zinc-400"
+            style={{ maxHeight: '160px' }}
+          />
+
+          {isLoading ? (
+            <button
+              onClick={onStop}
+              className="shrink-0 p-1.5 text-red-500 hover:text-red-600 transition-colors"
+              title="Stop"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <rect x="6" y="6" width="12" height="12" rx="1.5" />
+              </svg>
+            </button>
+          ) : (
+            <button
+              onClick={handleSubmit}
+              disabled={!input.trim()}
+              className="shrink-0 p-1.5 text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              title="Send"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
