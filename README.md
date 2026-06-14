@@ -58,7 +58,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/ai-chatbot.git
+git clone https://github.com/ArashDevelop/AI-Chatbot.git
 cd ai-chatbot
 
 # Install dependencies
