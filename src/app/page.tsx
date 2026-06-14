@@ -1,7 +1,7 @@
-'use client'
+"use client";
 
-import { ChatShell } from '@/components/ChatShell'
+import { ChatShell } from "@/components/ChatShell";
 
 export default function Home() {
-  return <ChatShell />
+  return <ChatShell />;
 }
