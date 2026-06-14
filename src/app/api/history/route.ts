@@ -64,3 +64,20 @@ export async function PUT(req: NextRequest) {
     return Response.json({ error: message }, { status: 500 })
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url)
+    const id = searchParams.get('id')
+
+    if (!id) {
+      return Response.json({ error: 'id required' }, { status: 400 })
+    }
+
+    await prisma.conversation.delete({ where: { id } })
+    return Response.json({ ok: true })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Internal server error'
+    return Response.json({ error: message }, { status: 500 })
+  }
+}
