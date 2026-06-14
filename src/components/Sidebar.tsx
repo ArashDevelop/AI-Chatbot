@@ -1,6 +1,8 @@
 'use client'
 
 import Link from 'next/link'
+import { signOut } from 'next-auth/react'
+import { useSession } from 'next-auth/react'
 
 export function Sidebar({
   open,
@@ -15,6 +17,9 @@ export function Sidebar({
   onDelete: (id: string, e: React.MouseEvent) => void
   onClose: () => void
 }) {
+  /* Fetch user session for profile info and role-based UI */
+  const { data: session } = useSession()
+
   return (
     <>
       {open && (
@@ -86,6 +91,43 @@ export function Sidebar({
             </div>
           ))}
         </div>
+
+        {/* User section at bottom */}
+        {session?.user && (
+          <div className="border-t border-zinc-100 dark:border-zinc-800 p-3 space-y-1">
+            <div className="flex items-center gap-2 px-3 py-2">
+              <div className="w-7 h-7 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center text-xs font-medium text-zinc-600 dark:text-zinc-300">
+                {(session.user.name || session.user.email || "?")[0].toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{session.user.name || "User"}</p>
+                <p className="text-[11px] text-zinc-400 truncate">{session.user.email}</p>
+              </div>
+            </div>
+            <Link
+              href="/auth/profile"
+              onClick={onClose}
+              className="block px-3 py-1.5 text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            >
+              Profile settings
+            </Link>
+            {session.user.role === "ADMIN" && (
+              <Link
+                href="/admin"
+                onClick={onClose}
+                className="block px-3 py-1.5 text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              >
+                Admin panel
+              </Link>
+            )}
+            <button
+              onClick={() => signOut({ callbackUrl: "/auth/login" })}
+              className="w-full text-left px-3 py-1.5 text-xs text-red-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+            >
+              Sign out
+            </button>
+          </div>
+        )}
       </aside>
     </>
   )

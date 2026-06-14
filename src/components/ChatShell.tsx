@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { ChatMessage } from './ChatMessage'
 import { ChatInput } from './ChatInput'
 import { Sidebar } from './Sidebar'
@@ -10,6 +11,8 @@ import type { ChatMessage as ChatMessageType } from '@/lib/openrouter'
 
 export function ChatShell({ conversationId }: { conversationId?: string }) {
   const router = useRouter()
+  const { data: session, status } = useSession()
+
   const [messages, setMessages] = useState<ChatMessageType[]>([])
   const [streamingContent, setStreamingContent] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -20,6 +23,7 @@ export function ChatShell({ conversationId }: { conversationId?: string }) {
   const [conversations, setConversations] = useState<{ id: string; title: string; createdAt: string }[]>([])
   const [currentConvId, setCurrentConvId] = useState<string | null>(conversationId || null)
   const [loadingChat, setLoadingChat] = useState(!!conversationId)
+  const [showModelPicker, setShowModelPicker] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -31,6 +35,7 @@ export function ChatShell({ conversationId }: { conversationId?: string }) {
     scrollToBottom()
   }, [messages, streamingContent, scrollToBottom])
 
+  /** Fetch available free models from OpenRouter on mount */
   useEffect(() => {
     fetch('/api/models')
       .then((res) => res.json())
@@ -43,20 +48,36 @@ export function ChatShell({ conversationId }: { conversationId?: string }) {
       .catch(() => {})
   }, [])
 
+  /** Load conversation messages if navigating to /c/[id] */
   useEffect(() => {
     if (!conversationId) return
     fetch(`/api/history?id=${conversationId}`)
       .then((res) => res.ok ? res.json() : null)
       .then((data) => {
-        if (data?.messages) {
-          setMessages(data.messages)
-        }
+        if (data?.messages) setMessages(data.messages)
       })
       .catch(() => {})
       .finally(() => setLoadingChat(false))
   }, [conversationId])
 
+  /** Fetch conversations list for sidebar */
+  useEffect(() => {
+    fetch('/api/history')
+      .then((res) => res.ok ? res.json() : { conversations: [] })
+      .then((data) => {
+        if (data.conversations) setConversations(data.conversations)
+      })
+      .catch(() => {})
+  }, [])
+
+  /** Send message to OpenRouter via /api/chat with streaming */
   const sendMessage = async (content: string) => {
+    // Force model selection if user hasn't chosen one
+    if (!model) {
+      setShowModelPicker(true)
+      return
+    }
+
     setError('')
     const userMessage: ChatMessageType = { role: 'user', content }
     const updatedMessages = [...messages, userMessage]
@@ -87,6 +108,7 @@ export function ChatShell({ conversationId }: { conversationId?: string }) {
       let buffer = ''
       let fullContent = ''
 
+      /* Process SSE stream line by line */
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
@@ -103,17 +125,12 @@ export function ChatShell({ conversationId }: { conversationId?: string }) {
 
           try {
             const parsed = JSON.parse(data)
-            if (parsed.error) {
-              setError(parsed.error)
-              continue
-            }
+            if (parsed.error) { setError(parsed.error); continue }
             if (parsed.content) {
               fullContent += parsed.content
               setStreamingContent(fullContent)
             }
-          } catch {
-            // skip malformed
-          }
+          } catch { /* skip malformed chunks */ }
         }
       }
 
@@ -134,11 +151,13 @@ export function ChatShell({ conversationId }: { conversationId?: string }) {
     }
   }
 
+  /** Save or update conversation in the database via POST/PUT */
   const saveConversation = useCallback(async (msgs: ChatMessageType[]) => {
     try {
       const title = msgs.find((m) => m.role === 'user')?.content.slice(0, 60) || 'New Chat'
 
       if (currentConvId) {
+        /* Update existing conversation */
         await fetch('/api/history', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -148,6 +167,7 @@ export function ChatShell({ conversationId }: { conversationId?: string }) {
           prev.map((c) => (c.id === currentConvId ? { ...c, title } : c))
         )
       } else {
+        /* Create new conversation and navigate to its URL */
         const res = await fetch('/api/history', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -163,43 +183,41 @@ export function ChatShell({ conversationId }: { conversationId?: string }) {
           ])
         }
       }
-    } catch {
-      // silently fail
-    }
+    } catch { /* silently fail — history is not critical */ }
   }, [currentConvId, router])
 
-  const stopGeneration = () => {
-    abortRef.current?.abort()
-  }
+  const stopGeneration = () => { abortRef.current?.abort() }
 
+  /** Delete a conversation and redirect if it was the current one */
   const deleteConversation = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
     try {
       const res = await fetch(`/api/history?id=${id}`, { method: 'DELETE' })
       if (res.ok) {
         setConversations((prev) => prev.filter((c) => c.id !== id))
-        if (currentConvId === id) {
-          router.push('/')
-        }
+        if (currentConvId === id) router.push('/')
       }
-    } catch {
-      // silently fail
-    }
+    } catch { /* silently fail */ }
   }
 
-  const newChat = () => {
-    router.push('/')
+  const newChat = () => { router.push('/') }
+
+  /* Show loading spinner while auth status resolves */
+  if (status === 'loading') {
+    return (
+      <div className="flex h-screen bg-white dark:bg-zinc-900 items-center justify-center">
+        <div className="w-5 h-5 border-2 border-zinc-300 dark:border-zinc-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
   }
 
-  useEffect(() => {
-    fetch('/api/history')
-      .then((res) => res.ok ? res.json() : { conversations: [] })
-      .then((data) => {
-        if (data.conversations) setConversations(data.conversations)
-      })
-      .catch(() => {})
-  }, [])
+  /* Redirect to login if not authenticated */
+  if (status === 'unauthenticated') {
+    router.push('/auth/login')
+    return null
+  }
 
+  /* Show spinner while loading a conversation from DB */
   if (loadingChat) {
     return (
       <div className="flex h-screen bg-white dark:bg-zinc-900 items-center justify-center">
@@ -274,6 +292,33 @@ export function ChatShell({ conversationId }: { conversationId?: string }) {
           isLoading={isLoading}
         />
       </div>
+
+      {/* Pre-chat model picker — forces user to select a model before chatting */}
+      {showModelPicker && models.length > 0 && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6 w-full max-w-md space-y-4">
+            <h2 className="text-sm font-semibold text-center">Choose your default model</h2>
+            <p className="text-xs text-zinc-400 text-center">Select which AI model to use for this conversation.</p>
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {models.map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => { setModel(m.id); setShowModelPicker(false) }}
+                  className="w-full text-left px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors text-sm"
+                >
+                  {m.name}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => { setModel(models[0]?.id || ''); setShowModelPicker(false) }}
+              className="w-full text-xs text-zinc-400 hover:text-zinc-600 transition-colors pt-1"
+            >
+              Use default ({models[0]?.name || 'gpt-oss-120m'})
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
