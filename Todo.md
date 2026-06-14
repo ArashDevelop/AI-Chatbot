@@ -1,42 +1,30 @@
-# ai-assistant — AI Chatbot
+# AI Chatbot
 
-## Project Overview
-AI chat assistant using OpenAI API with streaming responses, file upload, and conversation history.
+AI chat assistant using OpenRouter API with streaming responses, file upload, and conversation history.
 
 ## Tech Stack
-Next.js · OpenAI API · Supabase
+
+Next.js 16 · OpenRouter API · Supabase
 
 ---
 
-## Phases & Tasks
+## Status
 
-### 1️⃣ Setup
-- [ ] Create repo named "ai-assistant"
-- [ ] Create Next.js app
-- [ ] Create OpenAI account and get API key
-- [ ] Install openai package
-- [ ] Store API key in .env.local
-- [ ] Connect to Supabase for storing history
+- **Phase 1 (Setup):** ✅ Next.js app created, OpenRouter configured, .env.local template ready
+- **Phase 2 (Backend):** ✅ /api/chat (streaming), /api/history, /api/upload — all built
+- **Phase 3 (Frontend):** ✅ Chat UI, streaming, model selector, file upload, sidebar, markdown
+- **Phase 4 (Deployment):** ⏳ Not started
 
-### 2️⃣ Backend (API Routes)
-- [ ] Build /api/chat to send messages to OpenAI
-- [ ] Enable streaming with ReadableStream
-- [ ] Build /api/history to save and read conversations
-- [ ] Build /api/upload for file upload
-- [ ] Add appropriate system prompt
+## Remaining User Actions
 
-### 3️⃣ Frontend
-- [ ] Build chat UI: user and assistant message bubbles
-- [ ] Display streaming responses in real-time
-- [ ] Add file upload button
-- [ ] Display conversation history in sidebar
-- [ ] Add new chat button
-- [ ] Add loading indicator while waiting for response
-- [ ] Add copy to clipboard for messages
-- [ ] Add markdown rendering for responses
+- [ ] Add your **OpenRouter API key** to `.env.local`: `OPENROUTER_API_KEY=sk-...`
+- [ ] (Optional) Add **Supabase credentials** to `.env.local` for persistent history: `SUPABASE_URL=...` `SUPABASE_ANON_KEY=...`
+- [ ] Run `npm run dev` and test
 
-### 4️⃣ Deployment
+## Deployment
+
 - [ ] Deploy on Vercel
-- [ ] Set OPENAI_API_KEY on Vercel
+- [ ] Set `OPENROUTER_API_KEY` on Vercel
+- [ ] Set Supabase env vars on Vercel (if using)
 - [ ] Test streaming on production
 - [ ] Add demo GIF to README
