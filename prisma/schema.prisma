@@ -24,9 +24,10 @@ model User {
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
-  accounts     Account[]
-  sessions     Session[]
-  modelAccess  ModelAccess[]
+  accounts      Account[]
+  sessions      Session[]
+  modelAccess   ModelAccess[]
+  conversations Conversation[]
 
   @@map("users")
 }
@@ -74,9 +75,11 @@ model Conversation {
   id        String   @id @default(uuid())
   title     String   @default("New Chat")
   messages  Json
-  userId    String?
+  userId    String
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("conversations")
 }

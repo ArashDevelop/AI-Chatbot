@@ -1,20 +1,33 @@
 import { NextRequest } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
+/** Get the authenticated user's ID or return a 401 response */
+async function requireUser() {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) return null
+  return session.user.id
+}
+
 export async function GET(req: NextRequest) {
+  const userId = await requireUser()
+  if (!userId) return Response.json({ error: 'Not authenticated' }, { status: 401 })
+
   try {
     const { searchParams } = new URL(req.url)
     const id = searchParams.get('id')
 
     if (id) {
       const conversation = await prisma.conversation.findUnique({ where: { id } })
-      if (!conversation) {
+      if (!conversation || conversation.userId !== userId) {
         return Response.json({ error: 'Not found' }, { status: 404 })
       }
       return Response.json(conversation)
     }
 
     const conversations = await prisma.conversation.findMany({
+      where: { userId },
       select: { id: true, title: true, createdAt: true },
       orderBy: { createdAt: 'desc' },
     })
@@ -27,6 +40,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const userId = await requireUser()
+  if (!userId) return Response.json({ error: 'Not authenticated' }, { status: 401 })
+
   try {
     const { title, messages } = await req.json()
 
@@ -35,7 +51,7 @@ export async function POST(req: NextRequest) {
     }
 
     const conversation = await prisma.conversation.create({
-      data: { title: title || 'New Chat', messages },
+      data: { title: title || 'New Chat', messages, userId },
     })
 
     return Response.json(conversation, { status: 201 })
@@ -46,11 +62,19 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
+  const userId = await requireUser()
+  if (!userId) return Response.json({ error: 'Not authenticated' }, { status: 401 })
+
   try {
     const { id, title, messages } = await req.json()
 
     if (!id || !messages) {
       return Response.json({ error: 'id and messages required' }, { status: 400 })
+    }
+
+    const existing = await prisma.conversation.findUnique({ where: { id } })
+    if (!existing || existing.userId !== userId) {
+      return Response.json({ error: 'Not found' }, { status: 404 })
     }
 
     const conversation = await prisma.conversation.update({
@@ -66,12 +90,17 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const userId = await requireUser()
+  if (!userId) return Response.json({ error: 'Not authenticated' }, { status: 401 })
+
   try {
     const { searchParams } = new URL(req.url)
     const id = searchParams.get('id')
+    if (!id) return Response.json({ error: 'id required' }, { status: 400 })
 
-    if (!id) {
-      return Response.json({ error: 'id required' }, { status: 400 })
+    const existing = await prisma.conversation.findUnique({ where: { id } })
+    if (!existing || existing.userId !== userId) {
+      return Response.json({ error: 'Not found' }, { status: 404 })
     }
 
     await prisma.conversation.delete({ where: { id } })
