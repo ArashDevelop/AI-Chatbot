@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { signIn } from "next-auth/react"
+import { signIn, getSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 
@@ -28,8 +28,9 @@ export default function LoginPage() {
       setError("Invalid email or password")
       setLoading(false)
     } else {
+      // Force session refresh before navigating so ChatShell sees authenticated state
+      await getSession()
       router.push("/")
-      router.refresh()
     }
   }
 
