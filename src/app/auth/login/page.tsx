@@ -1,13 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { signIn, getSession } from "next-auth/react"
-import { useRouter } from "next/navigation"
+import { signIn } from "next-auth/react"
 import Link from "next/link"
 
 /** Login page — supports Google OAuth and email/password sign-in */
 export default function LoginPage() {
-  const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
@@ -18,20 +16,11 @@ export default function LoginPage() {
     setLoading(true)
     setError("")
 
-    const res = await signIn("credentials", {
+    await signIn("credentials", {
       email,
       password,
-      redirect: false,
+      callbackUrl: "/",
     })
-
-    if (res?.error) {
-      setError("Invalid email or password")
-      setLoading(false)
-    } else {
-      // Force session refresh before navigating so ChatShell sees authenticated state
-      await getSession()
-      router.push("/")
-    }
   }
 
   return (
